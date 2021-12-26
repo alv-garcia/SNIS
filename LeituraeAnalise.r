@@ -8,7 +8,7 @@
 library(tidyverse)
 library(geobr)
 library(viridis)
-
+library(ggpubr)
 
 #---------- Função de leitura e limpeza--------------
 
@@ -57,20 +57,26 @@ glimpse(dados)
 
 #---------- Mapas -----------------
 
-
+# Mapas dos municípios
 MG <- read_municipality(code_muni = "MG" , year = 2018)
 SP <- read_municipality(code_muni = "SP" , year = 2018)
 RJ <- read_municipality(code_muni = "RJ" , year = 2018)
 
-
 sudeste <- rbind(MG,SP,RJ)
+
+# Mapas dos Estados
+MG1 <- read_state(code_state = "MG")
+SP1 <- read_state(code_state = "SP")
+RJ1 <- read_state(code_state = "RJ")
+
+estados <- rbind(MG1,SP1,RJ1)
 
 
 sudeste <-sudeste %>%
   mutate(code_muni,"CODIGO" = str_sub(code_muni, start = 1, end = 6))
 
 snis_sudeste <- dados %>%
-  filter(Ano == 2020)
+  filter(Ano == 2019)
 
 mapa <- sudeste %>%
   inner_join(snis_sudeste, by = "CODIGO")
@@ -78,9 +84,40 @@ mapa <- sudeste %>%
 
 # Mapa
 
-
-ggplot()+
-  geom_sf(data = mapa, aes(fill = IN049), color ="#f5f5f2" ,size = 0, alpha = 0.9)+
+mapa_sudeste <-ggplot()+
+  geom_sf(data  = estados)+
+  geom_sf(data = sudeste)+
+  geom_sf(data = mapa, aes(fill = IN058),size = 0, alpha = 0.9)+
   theme_void()+
-  scale_fill_viridis(trans = "log", name = "ìndice de perdas de faturamento")
+  scale_fill_viridis(trans = "log", name = "Índice de Perdas \n de faturamento")
+
+
+# ------------- Tabela -------------------------
+
+
+stable<- snis_sudeste %>% desc_statby(measure.var = "IN058" , grps = "Estado")
+
+stable <- stable[, c("Estado", "length", "mean","min" , "max")]
+stable.p <- ggtexttable(stable, rows = NULL,
+                        theme = ttheme("light"))
+
+
+# Unindo a tabela e o gráfico
+
+figure <- ggarrange(mapa_sudeste, stable.p,
+          ncol = 1, nrow = 2,
+          heights = c(1, 0.5))
+
+annotate_figure(figure,
+                top = text_grob("Tarifa média de água \n 2019 - Sudeste -Brasil",
+                                color = "black", face = "bold", size = 14),
+                bottom = text_grob("Data source: \n SNIS,2019", color = "black",
+                                   hjust = 1, x = 1, face = "italic", size = 10),
+                fig.lab = "Figure 1", fig.lab.face = "bold"
+)
+
+
+mapa_sudeste
+
+
 
