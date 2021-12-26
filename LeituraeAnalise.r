@@ -6,6 +6,8 @@
 #---------- Pacotes -------------
 
 library(tidyverse)
+library(geobr)
+library(viridis)
 
 
 #---------- Função de leitura e limpeza--------------
@@ -50,3 +52,35 @@ LeituraSnis = function(Arquivo, Tidy ){
 dados <- LeituraSnis(Arquivo, FALSE)
 
 glimpse(dados)
+
+
+
+#---------- Mapas -----------------
+
+
+MG <- read_municipality(code_muni = "MG" , year = 2018)
+SP <- read_municipality(code_muni = "SP" , year = 2018)
+RJ <- read_municipality(code_muni = "RJ" , year = 2018)
+
+
+sudeste <- rbind(MG,SP,RJ)
+
+
+sudeste <-sudeste %>%
+  mutate(code_muni,"CODIGO" = str_sub(code_muni, start = 1, end = 6))
+
+snis_sudeste <- dados %>%
+  filter(Ano == 2020)
+
+mapa <- sudeste %>%
+  inner_join(snis_sudeste, by = "CODIGO")
+
+
+# Mapa
+
+
+ggplot()+
+  geom_sf(data = mapa, aes(fill = IN049), color ="#f5f5f2" ,size = 0, alpha = 0.9)+
+  theme_void()+
+  scale_fill_viridis(trans = "log", name = "ìndice de perdas de faturamento")
+
